@@ -5,7 +5,11 @@ import cv2
 from matplotlib import pyplot as plt
 
 
-def my_imfilter(image, twoDFilter, paddingType=0, dtype=np.uint8):
+ZERO_PADDING = 0
+EXTENDED_PADDING = 1
+
+
+def my_imfilter(image, twoDFilter, paddingType=ZERO_PADDING, dtype=np.uint8):
     """
     Convolve a filter to some image
 
@@ -19,6 +23,7 @@ def my_imfilter(image, twoDFilter, paddingType=0, dtype=np.uint8):
         A filter to convolve to the specified image
     :param paddingType: (int)
         0 for Zero Padding, 1 for Extended Padding.
+    :param dtype: Type ot output
     :return:
         The signed image
     """
@@ -35,34 +40,34 @@ def my_imfilter(image, twoDFilter, paddingType=0, dtype=np.uint8):
     # Find the pad size. For example, we will get 1 in case shape is 3, or 2 in case shape is 5, and so on
     # Bonus 1: Filter can be rectangle, and not necessarily square
     # Bonus 2: Calculate the padding size based on the specified filter size
-    padSizeVertical = np.int((twoDFilter.shape[0] - 1) / 2)
-    padSizeHorizontal = np.int((twoDFilter.shape[1] - 1) / 2)
-    paddedImage = myPadding(image, padSizeVertical, padSizeHorizontal, paddingType)
+    padSizeVertical = (twoDFilter.shape[0] - 1) // 2
+    padSizeHorizontal = (twoDFilter.shape[1] - 1) // 2
+    paddedImage = myPadding(image, padSizeVertical, padSizeHorizontal, paddingType).astype(np.float64)
 
-    result = np.zeros(image.shape, dtype)
-
-    # Make sure we do not exceed bounds of the specified data type (i=int, u=unsigned)
-    if result.dtype.kind in 'iu':
-        maxValue = np.iinfo(result.dtype).max
-        minValue = np.iinfo(result.dtype).min
-    else:
-        maxValue = np.finfo(result.dtype).max
-        minValue = np.finfo(result.dtype).min
+    twoDFilter = twoDFilter.astype(np.float64)
+    result = np.zeros(image.shape).astype(np.float64)
 
     # Now apply the filter - Bonus 1: Matrix can be a rectangle and not necessarily square
     for i in range(padSizeVertical, paddedImage.shape[0] - padSizeVertical):
         for j in range(padSizeHorizontal, paddedImage.shape[1] - padSizeHorizontal):
-            windowSum = np.sum(paddedImage[i - padSizeVertical: i + padSizeVertical + 1,
-                                           j - padSizeHorizontal: j + padSizeHorizontal + 1] * twoDFilter)
-
-            if windowSum > maxValue:
-                windowSum = maxValue
-            elif windowSum < minValue:
-                windowSum = minValue
+            windowSum = np.sum(twoDFilter * paddedImage[i - padSizeVertical: i + padSizeVertical + 1,
+                                                        j - padSizeHorizontal: j + padSizeHorizontal + 1])
 
             result[i - padSizeVertical, j - padSizeHorizontal] = windowSum
 
-    return result
+    # Make sure we do not exceed bounds of the specified data type (i=int, u=unsigned)
+    if np.issubdtype(dtype, np.integer):
+        maxValue = np.iinfo(dtype).max
+        minValue = np.iinfo(dtype).min
+    else:
+        maxValue = np.finfo(dtype).max
+        minValue = np.finfo(dtype).min
+
+    # Make sure we do not exceed the bounds of requested data type, by clipping the matrix.
+    # Clip means that any value below minimum will be modified to the minimum, and the same with maximum.
+    result = np.clip(result, minValue, maxValue)
+
+    return result.astype(dtype=dtype)
 
 
 def myPadding(matrix, padSizeVertical=1, padSizeHorizontal=1, paddingType=0):
