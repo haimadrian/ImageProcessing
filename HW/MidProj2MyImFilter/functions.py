@@ -70,7 +70,7 @@ def my_imfilter(image, twoDFilter, paddingType=ZERO_PADDING, dtype=np.uint8):
     return result.astype(dtype=dtype)
 
 
-def myPadding(matrix, padSizeVertical=1, padSizeHorizontal=1, paddingType=0):
+def myPadding(matrix, padSizeVertical=1, padSizeHorizontal=1, paddingType=ZERO_PADDING):
     """
     Do a padding with custom size and custom padding type (Zero or Extended) to a matrix.
 
@@ -91,7 +91,7 @@ def myPadding(matrix, padSizeVertical=1, padSizeHorizontal=1, paddingType=0):
         print("WARN - myPadding: Unsupported padding type. only 0 or 1 are supported. Using 0.")
         paddingType = 0
 
-    if paddingType == 0:
+    if paddingType == ZERO_PADDING:
         return myZeroPadding2D(matrix, padSizeVertical, padSizeHorizontal)
 
     return myExtendedPadding2D(matrix, padSizeVertical, padSizeHorizontal)
