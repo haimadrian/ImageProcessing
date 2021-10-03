@@ -1,4 +1,4 @@
-__author__ = "StackOverflow"
+__author__ = "crxguy52"
 
 import tkinter as tk
 import view.controls as ctl
@@ -47,9 +47,15 @@ class Tooltip(object):
         # Leaves only the label and removes the app window
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry("+%d+%d" % (x, y))
-        label = tk.Label(self.tw, text=self.text, justify='left', relief='solid', borderwidth=1,
-                         background=ctl.BACKGROUND_TOOLTIP_COLOR, foreground=ctl.FOREGROUND_TOOLTIP_COLOR,
-                         wraplength=self.wrap_length, font=ctl.FONT_REGULAR)
+        label = tk.Label(self.tw,
+                         text=self.text,
+                         justify='left',
+                         relief='solid',
+                         borderwidth=1,
+                         background=ctl.BACKGROUND_TOOLTIP_COLOR,
+                         foreground=ctl.FOREGROUND_TOOLTIP_COLOR,
+                         wraplength=self.wrap_length,
+                         font=ctl.FONT_REGULAR)
         label.pack(ipadx=5, ipady=5)
 
     def hidetip(self):

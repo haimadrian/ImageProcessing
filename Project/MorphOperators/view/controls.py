@@ -16,10 +16,12 @@ FONT_BUTTON = ('Calibri', 14, 'bold')
 FONT_TITLE = ('Calibri', 22, 'bold')
 
 
-def create_pad(master, side):
+def pad(master, side):
     """
-    We use this as a padding inside a frame. We create an empty label to force a pad between components
-    This is some weird hack, but the grid() does not snap to the frame when resizing it, so we use frames.
+    We use this as a padding inside a frame. We create an empty label to force a pad between
+    components
+    This is some weird hack, but the grid() does not snap to the frame when resizing it,
+    so we use frames.
     :param master: Owner of the label
     :param side: Where the label should be aligned to. (e.g. LEFT or RIGHT)
     :return: None
@@ -27,27 +29,35 @@ def create_pad(master, side):
     tk.Label(master=master, text=' ', background=BACKGROUND_COLOR).pack(side=side)
 
 
-def create_label(master, text):
+def label(master, text):
     """
     Create a label with dark background and regular font
     :param master: Owner of the label
     :param text: The text to set to the label
     :return: The label
     """
-    return tk.Label(master, text=text, background=BACKGROUND_COLOR, foreground=FOREGROUND_EDITOR_COLOR, font=FONT_REGULAR)
+    return tk.Label(master,
+                    text=text,
+                    background=BACKGROUND_COLOR,
+                    foreground=FOREGROUND_EDITOR_COLOR,
+                    font=FONT_REGULAR)
 
 
-def create_title(master, text):
+def title(master, text):
     """
     Create a label with dark background and title font
     :param master: Owner of the label
     :param text: The text to set to the label
     :return: The label
     """
-    return tk.Label(master, text=text, background=BACKGROUND_COLOR, foreground=FOREGROUND_EDITOR_COLOR, font=FONT_TITLE)
+    return tk.Label(master,
+                    text=text,
+                    background=BACKGROUND_COLOR,
+                    foreground=FOREGROUND_EDITOR_COLOR,
+                    font=FONT_TITLE)
 
 
-def create_entry(master, validate_command=None):
+def entry(master, validate_command=None):
     """
     Create an editor (text field) with dark background
     :param master: Owner of the label
@@ -55,56 +65,80 @@ def create_entry(master, validate_command=None):
     :return: The entry
     """
     if validate_command:
-        return tk.Entry(master=master, background=BACKGROUND_EDITOR_COLOR, foreground=FOREGROUND_EDITOR_COLOR,
-                        validate='all', validatecommand=validate_command)
-    return tk.Entry(master=master, background=BACKGROUND_EDITOR_COLOR, foreground=FOREGROUND_EDITOR_COLOR)
+        return tk.Entry(master=master,
+                        background=BACKGROUND_EDITOR_COLOR,
+                        foreground=FOREGROUND_EDITOR_COLOR,
+                        validate='all',
+                        validatecommand=validate_command)
+
+    return tk.Entry(master=master,
+                    background=BACKGROUND_EDITOR_COLOR,
+                    foreground=FOREGROUND_EDITOR_COLOR)
 
 
-def create_frame(master, fill, padx=5, pady=5):
+def frame(master, fill, padx=5, pady=5):
     """
-    A utility method used for creating frame under a specified master using specified fill, with dark background
+    A utility method used for creating frame under a specified master using specified fill, with
+    dark background
     :param master: Owner of the created frame
     :param fill: How the frame should fill its container. e.g. X, Y, BOTH
     :param padx: Horizontal padding
     :param pady: Vertical padding
     :return: The created frame
     """
-    frame = tk.Frame(master=master, background=BACKGROUND_COLOR)
-    frame.pack(fill=fill, padx=padx, pady=pady)
-    return frame
+    f = tk.Frame(master=master, background=BACKGROUND_COLOR)
+    f.pack(fill=fill, padx=padx, pady=pady)
+
+    return f
 
 
-def create_checkbutton(master, text, side):
+def checkButton(master, text):
     """
-    A utility method used for creating checkbutton under a specified master at specified side, with dark background
+    A utility method used for creating checkbutton under a specified master at specified side,
+    with dark background
     :param master: Owner of the created checkbutton
     :param text: The text to set to the checkbutton
-    :param side: Where the checkbutton should be
     :return: The created check button, followed by its IntVar
     """
     check_var = tk.IntVar()
-    checkbutton = tk.Checkbutton(master, text=text, padx=5, pady=5,
-                                 background=BACKGROUND_COLOR, foreground=FOREGROUND_EDITOR_COLOR,
-                                 activebackground=BACKGROUND_COLOR, activeforeground=FOREGROUND_EDITOR_COLOR,
-                                 font=FONT_REGULAR, selectcolor=BACKGROUND_EDITOR_COLOR, variable=check_var)
-    checkbutton.pack(side=side)
+    checkbutton = tk.Checkbutton(master,
+                                 text=text,
+                                 padx=5,
+                                 pady=5,
+                                 background=BACKGROUND_COLOR,
+                                 foreground=FOREGROUND_EDITOR_COLOR,
+                                 activebackground=BACKGROUND_COLOR,
+                                 activeforeground=FOREGROUND_EDITOR_COLOR,
+                                 font=FONT_REGULAR,
+                                 selectcolor=BACKGROUND_EDITOR_COLOR,
+                                 variable=check_var)
+
     return checkbutton, check_var
 
 
-def create_spinbox(master, values, width, validate_command, side=None):
+def spinBox(master, values, width, validate_command, side=None):
     """
-    A utility method used for creating spinbox under a specified master at specified side, with dark background
+    A utility method used for creating spinbox under a specified master at specified side,
+    with dark background
     :param master: Owner of the created checkbutton
     :param values: A tuple containing valid values for this widget
     :param side: Where the spinbox should be
     :param width: The width of the spinbox
-    :param validate_command Validator function to validate the input of the spinbox (func that receives a string and returns boolean)
+    :param validate_command Validator function to validate the input of the spinbox (func that
+    receives a string and returns boolean)
     :return: The created check button, followed by its IntVar
     """
-    spinbox = tk.Spinbox(master=master, width=width, values=values, font=FONT_REGULAR, validate='all', validatecommand=validate_command,
-                         background=BACKGROUND_EDITOR_COLOR, foreground=FOREGROUND_EDITOR_COLOR)
+    spinbox = tk.Spinbox(master=master,
+                         width=width,
+                         values=values,
+                         font=FONT_REGULAR,
+                         validate='all',
+                         validatecommand=validate_command,
+                         background=BACKGROUND_EDITOR_COLOR,
+                         foreground=FOREGROUND_EDITOR_COLOR)
     if side:
         spinbox.pack(side=side)
+
     return spinbox
 
 
@@ -126,9 +160,10 @@ def center(window):
     window.deiconify()
 
 
-def color_to_hex(color):
+def colorToHex(color):
     if not isinstance(color, tuple) or len(color) != 3:
-        print('color_to_hex: Specified color was not a tuple or its dimension does not fit to RGB. Was:', color)
+        print('ERROR - colorToHex: Specified color was not a tuple or its dimension does not ' +
+              'fit to RGB. Was:', color)
         return '#00FF00'
 
     def clamp(x):

@@ -1,87 +1,126 @@
 __author__ = "Haim Adrian"
 
-import numpy as np
-import tkinter as tk
-import tkinter.ttk as ttk
 import os
-import view.controls as ctl
-from util import settings
-from util.settings import Settings
-from tkinter import messagebox
+import tkinter as tk
 from ast import literal_eval
+from tkinter import messagebox
+
+import numpy as np
+
+import view.controls as ctl
+from util.settings import settingsInstance
 
 
-def reset_text(widget, value):
+def resetText(widget, value):
     widget.delete(0, tk.END)
     widget.insert(0, str(value))
 
 
-def is_numeric(x):
+def isNumeric(x):
     import re
 
     # Store a compiled regex onto the function so we will not have to recompile it over and over
-    if not hasattr(is_numeric, 'numericRegex'):
+    if not hasattr(isNumeric, 'numericRegex'):
         # Do not accept negative values (define + in the regex only, without -)
-        is_numeric.numericRegex = re.compile(r"^([+]?\d*)\.?\d*$")
-    return len(str(x).strip()) > 0 and is_numeric.numericRegex.match(str(x).strip()) is not None
+        isNumeric.numericRegex = re.compile(r"^([+-]?\d*)\.?\d*$")
+    return len(str(x).strip()) > 0 and isNumeric.numericRegex.match(str(x).strip()) is not None
 
 
-def is_tuple(x):
+def isTuple(x):
     import re
 
     # Store a compiled regex onto the function so we will not have to recompile it over and over
-    if not hasattr(is_tuple, 'tupleRegex'):
-        is_tuple.tupleRegex = re.compile(r"^ *\( *\d+ *, *\d+ *, *\d+ *\) *$")
-    return len(str(x).strip()) > 0 and is_tuple.tupleRegex.match(str(x).strip()) is not None
+    if not hasattr(isTuple, 'tupleRegex'):
+        isTuple.tupleRegex = re.compile(r"^ *\( *\d+ *, *\d+ *, *\d+ *\) *$")
+    return len(str(x).strip()) > 0 and isTuple.tupleRegex.match(str(x).strip()) is not None
 
 
-def numeric_validator(widget, old_text, new_text):
+def numericValidator(widget, oldText, newText):
     """
     A function used to validate the input of an entry, to make sure it is numeric
     :param widget: Sender widget
-    :param old_text: Input text before the change
-    :param new_text: Input text
+    :param oldText: Input text before the change
+    :param newText: Input text
     :return: Whether text is a valid number or not
     """
-    is_valid = is_numeric(new_text) or new_text == ''
+    isValid = isNumeric(newText) or newText == ''
 
-    if not is_valid:
-        messagebox.showerror('Illegal Input', 'Input must be numeric. Was: {}'.format(new_text))
+    if not isValid:
+        messagebox.showerror('Illegal Input', 'Input must be numeric. Was: {}'.format(newText))
         widget.delete(0, tk.END)
-        widget.insert(0, old_text)
+        widget.insert(0, oldText)
         widget.focus_set()
 
-    return is_valid
+    return isValid
+
+
+def numericInRangeValidator(widget, oldText, newText, start, end):
+    """
+    A function used to validate the input of an entry, to make sure it is numeric
+    :param widget: Sender widget
+    :param oldText: Input text before the change
+    :param newText: Input text
+    :param start: Start of range
+    :param end: End of range
+    :return: Whether text is a valid number or not
+    """
+    isValid = numericValidator(widget, oldText, newText)
+
+    if isValid:
+        isValid = False
+        if isNumeric(newText):
+            if start <= float(newText) <= end:
+                isValid = True
+        elif newText == '':
+            isValid = True
+
+        if not isValid:
+            messagebox.showerror('Illegal Input',
+                                 'Input is out of range [{}, {}]. Was: {}'
+                                 .format(start, end, newText))
+            widget.delete(0, tk.END)
+            widget.insert(0, oldText)
+            widget.focus_set()
+
+    return isValid
 
 
 class SettingsDialog(tk.Toplevel):
-    def __init__(self, parent, a_settings: Settings):
+    def __init__(self, parent):
         tk.Toplevel.__init__(self, parent)
 
         # Hide the dialog in the task bar. Let it be an inner window of the parent window
         self.transient(parent)
 
-        self.title('Settings')
+        self.title('App Settings')
         self.iconbitmap(os.path.abspath(os.path.join('resource', 'settings-icon.ico')))
         self.config(background=ctl.BACKGROUND_COLOR)
         self.parent = parent
 
         # The result of the dialog: settings.Settings object
         self.__result = None
-        self.closing = False  # A marker to see if we are cancelling the window, to avoid of validating input
-        self.settings = a_settings
-        self.rect_mark_check_var = None  # tk.IntVar  - to hold the value of the rect_mark checkbox
-        self.rect_mark_checkbutton = None  # tk.Checkbutton
-        self.mark_color = self.settings.corners_color  # Tuple (R, G, B)
-        self.mark_color_entry = None  # tk.Button
-        self.dilate_size_spinbox = None  # tk.Spinbox
-        self.harris_score_threshold_spinbox = None  # tk.Entry
-        self.harris_free_parameter_spinbox = None  # tk.Entry
-        self.neighborhood_size_spinbox = None  # tk.Entry
-        self.canny_min_threshold_entry = None  # tk.Entry
-        self.canny_max_threshold_entry = None  # tk.Entry
-        self.quality_combo = None  # ttk.Combobox
-        self.quality_var = None  # tk.StringVar
+        self.closing = False  # Marker to see if we cancel the window, to avoid of validating input
+        self.gammaCorrectionValueSpinbox = None  # tk.Spinbox
+        self.blurKernelSizeSpinbox = None  # tk.Spinbox
+        self.gradientEdgeCheckVar = None  # tk.IntVar - to hold the value of the gradient checkbox
+        self.gradientEdgeCheckButton = None  # tk.Checkbutton
+        self.threshold1Spinbox = None  # tk.Spinbox
+        self.threshold2Spinbox = None  # tk.Spinbox
+        self.brightBackgroundCheckVar = None  # tk.IntVar - to hold the value of the bright checkbox
+        self.brightBackgroundCheckButton = None  # tk.Checkbutton
+        self.morphCloseIterationsCountSpinbox = None  # tk.Spinbox
+        self.morphOpenIterationsCountSpinbox = None  # tk.Spinbox
+        self.morphDilateIterationsCountSpinbox = None  # tk.Spinbox
+        self.morphErodeIterationsCountSpinbox = None  # tk.Spinbox
+        self.structuringElementDontCareWidthSpinbox = None  # tk.Spinbox
+        self.imageShape = settingsInstance.imageShape  # Tuple (Width, Height)
+        self.imageShapeEntry = None  # tk.Entry
+        self.markThicknessSpinbox = None  # tk.Spinbox
+        self.markColor = settingsInstance.markColor  # Tuple (R, G, B)
+        self.markColorEntry = None  # tk.Entry
+        self.morphologicalMaskShape = settingsInstance.morphologicalMaskShape  # Tuple (Width, Height)
+        self.morphologicalMaskShapeEntry = None  # tk.Entry
+        self.objectRotationDegreeIncSpinbox = None  # tk.Spinbox
 
         # Build the body
         body = tk.Frame(self)
@@ -107,8 +146,8 @@ class SettingsDialog(tk.Toplevel):
     @property
     def result(self):
         """
-        The result of settings dialog is None in case user cancelled the dialog, or util.settings.Settings object
-        if user approved the dialog
+        The result of settings dialog is None in case user cancelled the dialog, or
+        util.settings.Settings object if user approved the dialog
         :return: The settings
         """
         return self.__result
@@ -123,93 +162,263 @@ class SettingsDialog(tk.Toplevel):
         frame = tk.Frame(master, bg=ctl.BACKGROUND_COLOR)
         frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
         frame.columnconfigure(1, weight=1)
-        self.rect_mark_checkbutton, self.rect_mark_check_var = ctl.create_checkbutton(frame, 'Use rectangle mark (or dots)', tk.LEFT)
-        self.rect_mark_checkbutton.grid(row=0, columnspan=2, padx=5, pady=5, sticky=tk.W)
-        self.mark_color_entry = tk.Entry(frame, font=ctl.FONT_REGULAR_BOLD,
-                                         foreground='white', background=ctl.color_to_hex(self.settings.corners_color))
-        self.mark_color_entry.bind('<FocusOut>',
-                                   lambda event: self.color_validator_cmd(self.mark_color_entry.get()))
-        self.mark_color_entry.grid(row=0, column=1, padx=5, pady=5, sticky=tk.EW)
 
-        ctl.create_label(frame, text='Bounding rectangle size').grid(row=1, padx=5, pady=5, sticky=tk.W)
-        # Registering validation command
-        self.dilate_size_spinbox = ctl.create_spinbox(frame, (1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50), 5,
-                                                      (self.master.register(self.dilate_size_validator), '%s', '%P'))
-        self.dilate_size_spinbox.bind('<FocusOut>',
-                                      lambda event: self.dilate_size_validator(self.settings.dilate_size, self.dilate_size_spinbox.get()))
-        self.dilate_size_spinbox.grid(row=1, column=1, padx=5, pady=5, sticky=tk.EW)
+        # Row number in grid, to set components row by row
+        r = 0
+        self.initGammaCorrectionEditor(frame, r)
 
-        ctl.create_label(frame, text='Harris score threshold').grid(row=2, padx=5, pady=5, sticky=tk.W)
-        # %W is the widget, %s is the text before edit, %P is the text after edit
-        self.harris_score_threshold_spinbox = ctl.create_spinbox(frame, tuple(np.arange(0.01, 1, 0.01)), 5,
-                                                                 (self.master.register(self.numeric_validator_cmd), '%W', '%s', '%P'))
-        self.harris_score_threshold_spinbox.bind('<FocusOut>',
-                                                 lambda event: numeric_validator(self.harris_score_threshold_spinbox,
-                                                                                 self.settings.harris_score_threshold,
-                                                                                 self.harris_score_threshold_spinbox.get()) if not self.closing else None)
-        self.harris_score_threshold_spinbox.grid(row=2, column=1, padx=5, pady=5, sticky=tk.EW)
+        r += 1
+        self.initBlurKernelSizeEditor(frame, r)
 
-        ctl.create_label(frame, text='Harris free parameter (k)').grid(row=3, padx=5, pady=5, sticky=tk.W)
-        self.harris_free_parameter_spinbox = ctl.create_spinbox(frame, (0.04, 0.05, 0.06), 5,
-                                                                (self.master.register(self.numeric_validator_cmd), '%W', '%s', '%P'))
-        self.harris_free_parameter_spinbox.bind('<FocusOut>',
-                                                lambda event: numeric_validator(self.harris_free_parameter_spinbox,
-                                                                                self.settings.harris_free_parameter,
-                                                                                self.harris_free_parameter_spinbox.get()) if not self.closing else None)
-        self.harris_free_parameter_spinbox.grid(row=3, column=1, padx=5, pady=5, sticky=tk.EW)
+        r += 1
+        self.gradientEdgeCheckButton, self.gradientEdgeCheckVar = \
+            ctl.checkButton(frame, 'Use Gradient Edge Detector')
+        self.gradientEdgeCheckButton.grid(row=r, columnspan=2, padx=5, pady=5, sticky=tk.W)
 
-        ctl.create_label(frame, text='Neighborhood size (Harris Matrix)').grid(row=4, padx=5, pady=5, sticky=tk.W)
-        self.neighborhood_size_spinbox = ctl.create_spinbox(frame, tuple(range(3, 17, 2)), 5,
-                                                            (self.master.register(self.numeric_validator_cmd), '%W', '%s', '%P'))
-        self.neighborhood_size_spinbox.bind('<FocusOut>',
-                                            lambda event: numeric_validator(self.neighborhood_size_spinbox,
-                                                                            self.settings.neighborhood_size,
-                                                                            self.neighborhood_size_spinbox.get()) if not self.closing else None)
-        self.neighborhood_size_spinbox.grid(row=4, column=1, padx=5, pady=5, sticky=tk.EW)
+        r += 1
+        self.initThreshold1Editor(frame, r)
 
-        ctl.create_label(frame, text='Canny Edge Min threshold').grid(row=5, padx=5, pady=5, sticky=tk.W)
-        self.canny_min_threshold_entry = ctl.create_entry(frame, (self.master.register(self.numeric_validator_cmd), '%W', '%s', '%P'))
-        self.canny_min_threshold_entry.bind('<FocusOut>',
-                                            lambda event: numeric_validator(self.canny_min_threshold_entry,
-                                                                            self.settings.canny_min_thresh,
-                                                                            self.canny_min_threshold_entry.get()) if not self.closing else None)
-        self.canny_min_threshold_entry.grid(row=5, column=1, padx=5, pady=5, sticky=tk.EW)
+        r += 1
+        self.initThreshold2Editor(frame, r)
 
-        ctl.create_label(frame, text='Canny Edge Max threshold').grid(row=6, padx=5, pady=5, sticky=tk.W)
-        self.canny_max_threshold_entry = ctl.create_entry(frame, (self.master.register(self.numeric_validator_cmd), '%W', '%s', '%P'))
-        self.canny_max_threshold_entry.bind('<FocusOut>',
-                                            lambda event: numeric_validator(self.canny_max_threshold_entry,
-                                                                            self.settings.canny_max_thresh,
-                                                                            self.canny_max_threshold_entry.get()) if not self.closing else None)
-        self.canny_max_threshold_entry.grid(row=6, column=1, padx=5, pady=5, sticky=tk.EW)
+        r += 1
+        self.brightBackgroundCheckButton, self.brightBackgroundCheckVar = \
+            ctl.checkButton(frame, 'Bright Background Images')
+        self.brightBackgroundCheckButton.grid(row=r, columnspan=2, padx=5, pady=5, sticky=tk.W)
 
-        ctl.create_label(frame, text='Corners detection quality').grid(row=7, padx=5, pady=5, sticky=tk.W)
-        self.quality_var = tk.StringVar()
-        self.quality_combo = ttk.Combobox(frame, textvariable=self.quality_var, values=(settings.HIGH_QUALITY, settings.LOW_QUALITY),
-                                          style='TCombobox', state='readonly')
-        self.quality_combo.grid(row=7, column=1, padx=5, pady=5, sticky=tk.EW)
-        self.quality_var.set(settings.HIGH_QUALITY)
+        r += 1
+        self.morphCloseIterationsCountSpinbox = \
+            self.createMorphIterationsCountEditor(frame,
+                                                  r,
+                                                  'Iterations of Morphological Closing',
+                                                  lambda event: self.closeIterationsCountValidator(
+                                                      settingsInstance.morphCloseIterationsCount,
+                                                      self.morphCloseIterationsCountSpinbox.get()),
+                                                  self.closeIterationsCountValidator)
+
+        r += 1
+        self.morphOpenIterationsCountSpinbox = \
+            self.createMorphIterationsCountEditor(frame,
+                                                  r,
+                                                  'Iterations of Morphological Opening',
+                                                  lambda event: self.openIterationsCountValidator(
+                                                      settingsInstance.morphOpenIterationsCount,
+                                                      self.morphOpenIterationsCountSpinbox.get()),
+                                                  self.openIterationsCountValidator)
+
+        r += 1
+        self.morphDilateIterationsCountSpinbox = \
+            self.createMorphIterationsCountEditor(frame,
+                                                  r,
+                                                  'Iterations of Morphological Dilation (Search)',
+                                                  lambda event: self.dilateIterationsCountValidator(
+                                                      settingsInstance.morphDilateIterationsCount,
+                                                      self.morphDilateIterationsCountSpinbox.get()),
+                                                  self.dilateIterationsCountValidator)
+
+        r += 1
+        self.morphErodeIterationsCountSpinbox = \
+            self.createMorphIterationsCountEditor(frame,
+                                                  r,
+                                                  'Iterations of Morphological Erosion (Search)',
+                                                  lambda event: self.erodeIterationsCountValidator(
+                                                      settingsInstance.morphErodeIterationsCount,
+                                                      self.morphErodeIterationsCountSpinbox.get()),
+                                                  self.erodeIterationsCountValidator)
+
+        r += 1
+        self.structuringElementDontCareWidthSpinbox = \
+            self.createMorphIterationsCountEditor(frame,
+                                                  r,
+                                                  'Border Width of Don\'tCare in Structuring Element',
+                                                  lambda event: self.structuringElementDontCareValidator(
+                                                      settingsInstance.structuringElementDontCareWidth,
+                                                      self.structuringElementDontCareWidthSpinbox.get()),
+                                                  self.structuringElementDontCareValidator)
+
+        r += 1
+        self.initMarkColorEditor(frame, r)
+
+        r += 1
+        self.initMarkThicknessEditor(frame, r)
+
+        r += 1
+        self.initImageShapeEditor(frame, r)
+
+        r += 1
+        self.initMorphologicalMaskShapeEditor(frame, r)
+
+        r += 1
+        self.initObjectRotationDegreeInc(frame, r)
 
         # Load settings object to the editors
-        self.init_settings()
+        self.initSettings()
 
         return frame
+
+    def initGammaCorrectionEditor(self, frame, r):
+        ctl.label(frame, text='Gamma Correction Value').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        # np.arange yields bad values.. e.g. -1.60000000e00 or 1.599
+        self.gammaCorrectionValueSpinbox = \
+            ctl.spinBox(frame,
+                        [-1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0,
+                         -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0,
+                         0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
+                         1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9],
+                        3,
+                        (self.master.register(self.gammaCorrectionValidator),
+                         '%s',
+                         '%P'))
+        self.gammaCorrectionValueSpinbox.bind(
+            '<FocusOut>',
+            lambda event: self.gammaCorrectionValidator(settingsInstance.gammaCorrectionValue,
+                                                        self.gammaCorrectionValueSpinbox.get()))
+        self.gammaCorrectionValueSpinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initBlurKernelSizeEditor(self, frame, r):
+        ctl.label(frame, text='Blur Kernel Size').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.blurKernelSizeSpinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=1, stop=40, step=2).tolist(),
+                        3,
+                        (self.master.register(self.blurKernelSizeValidator),
+                         '%s',
+                         '%P'))
+        self.blurKernelSizeSpinbox.bind(
+            '<FocusOut>',
+            lambda event: self.blurKernelSizeValidator(settingsInstance.blurKernelSize,
+                                                       self.blurKernelSizeSpinbox.get()))
+        self.blurKernelSizeSpinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initThreshold1Editor(self, frame, r):
+        ctl.label(frame, text='Threshold1 (Min)').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.threshold1Spinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=0, stop=255, dtype=np.uint8).tolist(),
+                        3,
+                        (self.master.register(self.pixelValueThreshold1Validator),
+                         '%s',
+                         '%P'))
+        self.threshold1Spinbox.bind(
+            '<FocusOut>',
+            lambda event: self.pixelValueThreshold1Validator(settingsInstance.threshold1,
+                                                             self.threshold1Spinbox.get()))
+        self.threshold1Spinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initThreshold2Editor(self, frame, r):
+        ctl.label(frame, text='Threshold2 (Max)').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.threshold2Spinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=1, stop=256, dtype=np.uint8).tolist(),
+                        3,
+                        (self.master.register(self.pixelValueThreshold2Validator),
+                         '%s',
+                         '%P'))
+        self.threshold2Spinbox.bind(
+            '<FocusOut>',
+            lambda event: self.pixelValueThreshold2Validator(settingsInstance.threshold2,
+                                                             self.threshold2Spinbox.get()))
+        self.threshold2Spinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def createMorphIterationsCountEditor(self, frame, r, text, validatorFunc, validatorFuncRef):
+        ctl.label(frame, text=text).grid(row=r, padx=5, pady=5, sticky=tk.W)
+        # Registering validation command
+        morphIterationsCountSpinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=1, stop=21, dtype=np.uint8).tolist(),
+                        3,
+                        (self.master.register(validatorFuncRef), '%s', '%P'))
+        morphIterationsCountSpinbox.bind('<FocusOut>', validatorFunc)
+        morphIterationsCountSpinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+        return morphIterationsCountSpinbox
+
+    def initMarkColorEditor(self, frame, r):
+        ctl.label(frame, text='Highlight Color').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.markColorEntry = tk.Entry(frame,
+                                       font=ctl.FONT_REGULAR_BOLD,
+                                       foreground='black',
+                                       background=ctl.colorToHex(settingsInstance.markColor))
+        self.markColorEntry.bind('<FocusOut>',
+                                 lambda event: self.colorValidatorCmd(self.markColorEntry.get()))
+        self.markColorEntry.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initMarkThicknessEditor(self, frame, r):
+        ctl.label(frame, text='Highlight Thickness').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.markThicknessSpinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=1, stop=11).tolist(),
+                        3,
+                        (self.master.register(self.markThicknessValidator),
+                         '%s',
+                         '%P'))
+        self.markThicknessSpinbox.bind(
+            '<FocusOut>',
+            lambda event: self.markThicknessValidator(settingsInstance.threshold2,
+                                                      self.markThicknessSpinbox.get()))
+        self.markThicknessSpinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initImageShapeEditor(self, frame, r):
+        ctl.label(frame, text='Image Shape').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.imageShapeEntry = ctl.entry(frame)
+        self.imageShapeEntry.bind('<FocusOut>',
+                                  lambda event: self.shapeValidatorCmd(self.imageShapeEntry.get()))
+        self.imageShapeEntry.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initMorphologicalMaskShapeEditor(self, frame, r):
+        ctl.label(frame, text='Morphological Mask Shape').grid(row=r, padx=5, pady=5, sticky=tk.W)
+        self.morphologicalMaskShapeEntry = ctl.entry(frame)
+        self.morphologicalMaskShapeEntry.bind(
+            '<FocusOut>',
+            lambda event: self.maskShapeValidatorCmd(self.morphologicalMaskShapeEntry.get()))
+        self.morphologicalMaskShapeEntry.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
+
+    def initObjectRotationDegreeInc(self, frame, r):
+        ctl.label(frame, text="Object Rotation Degree Increase").grid(row=r, padx=5, pady=5, sticky=tk.W)
+        # Registering validation command
+        self.objectRotationDegreeIncSpinbox = \
+            ctl.spinBox(frame,
+                        np.arange(start=1, stop=91, dtype=np.uint8).tolist(),
+                        3,
+                        (self.master.register(self.objectRotationDegreeValidator), '%s', '%P'))
+        self.objectRotationDegreeIncSpinbox.bind(
+            '<FocusOut>',
+            lambda event: self.objectRotationDegreeValidator(settingsInstance.objectRotationDegreeInc,
+                                                             self.objectRotationDegreeIncSpinbox.get()))
+        self.objectRotationDegreeIncSpinbox.grid(row=r, column=1, padx=5, pady=5, sticky=tk.EW)
 
     def buttonbox(self):
         """
         OK and Cancel buttons
         :return: A frame containing the two buttons
         """
-        box = ctl.create_frame(self, tk.BOTH, 0, 0)
+        box = ctl.frame(self, tk.BOTH, 0, 0)
 
-        w = tk.Button(box, text="Reset", width=5, height=1, command=self.reset, font=ctl.FONT_REGULAR,
-                      foreground='white', background=ctl.BACKGROUND_TOOLTIP_COLOR)
+        w = tk.Button(box,
+                      text="Reset",
+                      width=5,
+                      height=1,
+                      command=self.reset,
+                      font=ctl.FONT_REGULAR,
+                      foreground='white',
+                      background=ctl.BACKGROUND_TOOLTIP_COLOR)
         w.pack(side=tk.LEFT, padx=5, pady=5)
-        w = tk.Button(box, text="Cancel", width=10, command=self.cancel, font=ctl.FONT_BUTTON,
-                      foreground='white', background='#C75450')
+        w = tk.Button(box,
+                      text="Cancel",
+                      width=10,
+                      command=self.cancel,
+                      font=ctl.FONT_BUTTON,
+                      foreground='white',
+                      background='#C75450')
         w.pack(side=tk.RIGHT, padx=5, pady=5)
-        w = tk.Button(box, text="OK", width=10, command=self.ok, default=tk.ACTIVE, font=ctl.FONT_BUTTON,
-                      foreground='white', background=ctl.ACCEPT_COLOR)
+        w = tk.Button(box,
+                      text="OK",
+                      width=10,
+                      command=self.ok,
+                      default=tk.ACTIVE,
+                      font=ctl.FONT_BUTTON,
+                      foreground='white',
+                      background=ctl.ACCEPT_COLOR)
         w.pack(side=tk.RIGHT, padx=5, pady=5)
 
         self.bind("<Return>", self.ok)
@@ -229,10 +438,11 @@ class SettingsDialog(tk.Toplevel):
             self.initial_focus.focus_set()
             return
 
-        # Validate the color specifically because we have not registered a validation command on it, but a
-        # FocusOut binding only. The reason is we do want to allow several edits of the color as it is a Tuple string,
-        # and validation command validates each single input char..
-        if not self.color_validator_cmd(self.mark_color_entry.get()):
+        # Validate the color specifically because we have not registered a validation
+        # command on it, but a FocusOut binding only. The reason is we do want to allow
+        # several edits of the color as it is a Tuple string, and validation command
+        # validates each single input char..
+        if not self.colorValidatorCmd(self.markColorEntry.get()):
             self.initial_focus.focus_set()
 
         self.withdraw()
@@ -261,15 +471,12 @@ class SettingsDialog(tk.Toplevel):
         """
         error = None
 
-        harris_score = self.harris_score_threshold_spinbox.get()
-        harris_param = self.harris_free_parameter_spinbox.get()
-        neighborhood_size = self.neighborhood_size_spinbox.get()
-        if not is_numeric(harris_score) or not 0 < float(harris_score) <= 1:
-            error = 'Harris score threshold must be numeric in range (0, 1]'
-        elif not is_numeric(harris_param) or not 0 < float(harris_param) <= 1:
-            error = 'Harris free parameter must be numeric in range [0.04, 0.06]'
-        elif not is_numeric(neighborhood_size) or not 3 <= float(neighborhood_size) <= 15 or int(float(neighborhood_size)) % 2 == 0:
-            error = 'Neighborhood size must be an odd numeric in range [3, 15]'
+        thresh1 = self.threshold1Spinbox.get()
+        thresh2 = self.threshold2Spinbox.get()
+        if not isNumeric(thresh1) or not isNumeric(thresh2):
+            error = 'Thresholds must be numbers'
+        elif int(thresh2) <= int(thresh1):
+            error = 'Threshold1 must be less than threshold2'
 
         return error
 
@@ -278,103 +485,254 @@ class SettingsDialog(tk.Toplevel):
         Gather data into settings variable and set it as the result
         :return: None
         """
-        self.__result = Settings(float(self.harris_score_threshold_spinbox.get()),
-                                 float(self.harris_free_parameter_spinbox.get()),
-                                 int(float(self.neighborhood_size_spinbox.get())),
-                                 self.mark_color,
-                                 int(float(self.canny_min_threshold_entry.get())),
-                                 int(float(self.canny_max_threshold_entry.get())),
-                                 bool(self.rect_mark_check_var.get()),
-                                 int(float(self.dilate_size_spinbox.get())),
-                                 self.quality_var.get())
+        settingsInstance.gammaCorrectionValue = float(self.gammaCorrectionValueSpinbox.get())
+        settingsInstance.blurKernelSize = int(self.blurKernelSizeSpinbox.get())
+        settingsInstance.isUsingGradientEdgeDetector = bool(self.gradientEdgeCheckVar.get())
+        settingsInstance.threshold1 = int(self.threshold1Spinbox.get())
+        settingsInstance.threshold2 = int(self.threshold2Spinbox.get())
+        settingsInstance.isBrightBackground = bool(self.brightBackgroundCheckVar.get())
+        settingsInstance.morphCloseIterationsCount = int(self.morphCloseIterationsCountSpinbox.get())
+        settingsInstance.morphOpenIterationsCount = int(self.morphOpenIterationsCountSpinbox.get())
+        settingsInstance.morphDilateIterationsCount = int(self.morphDilateIterationsCountSpinbox.get())
+        settingsInstance.morphErodeIterationsCount = int(self.morphErodeIterationsCountSpinbox.get())
+        settingsInstance.structuringElementDontCareWidth = \
+            int(self.structuringElementDontCareWidthSpinbox.get())
+        settingsInstance.markColor = self.markColor
+        settingsInstance.markThickness = int(self.markThicknessSpinbox.get())
+        settingsInstance.imageShape = self.imageShape
+        settingsInstance.morphologicalMaskShape = self.morphologicalMaskShape
+        settingsInstance.objectRotationDegreeInc = int(self.objectRotationDegreeIncSpinbox.get())
+        self.__result = settingsInstance
 
-    def dilate_size_validator(self, old_text, new_text):
+    def markThicknessValidator(self, oldText, newText):
         """
-        A function used to validate the input of dilate spinbox. (bounding rectangle size for marking corners)
-        :param old_text: Text before change
-        :param new_text: Input text (to the spinbox)
+        A function used to validate the input of iterations count spinbox.
+        :param oldText: Text before change
+        :param newText: Input text (to the spinbox)
         :return: Whether text is a valid integer (in range) or not
         """
         if self.closing:
             return True
 
-        is_valid = False
-        if new_text.isdigit():
-            if 0 < int(new_text) <= 100:
-                is_valid = True
-        elif new_text == '':
-            is_valid = True
+        return numericInRangeValidator(self.markThicknessSpinbox, oldText, newText, 1, 20)
 
-        if not is_valid:
-            messagebox.showerror('Illegal Input', 'Dilate size (rectangle) must be between 1 to 100. Was: {}'.format(new_text))
-            self.dilate_size_spinbox.delete(0, tk.END)
-            self.dilate_size_spinbox.insert(0, old_text)
-            self.dilate_size_spinbox.focus_set()
+    def closeIterationsCountValidator(self, oldText, newText):
+        if self.closing:
+            return True
+        return numericInRangeValidator(self.morphCloseIterationsCountSpinbox, oldText, newText, 1, 20)
 
-        return is_valid
+    def openIterationsCountValidator(self, oldText, newText):
+        if self.closing:
+            return True
+        return numericInRangeValidator(self.morphOpenIterationsCountSpinbox, oldText, newText, 1, 20)
 
-    def numeric_validator_cmd(self, widget_name, old_text, new_text):
+    def dilateIterationsCountValidator(self, oldText, newText):
+        if self.closing:
+            return True
+        return numericInRangeValidator(self.morphDilateIterationsCountSpinbox, oldText, newText, 1, 20)
+
+    def erodeIterationsCountValidator(self, oldText, newText):
+        if self.closing:
+            return True
+        return numericInRangeValidator(self.morphErodeIterationsCountSpinbox, oldText, newText, 1, 20)
+
+    def structuringElementDontCareValidator(self, oldText, newText):
+        if self.closing:
+            return True
+        return numericInRangeValidator(self.structuringElementDontCareWidthSpinbox, oldText, newText, 1, 15)
+
+    def gammaCorrectionValidator(self, oldText, newText):
+        """
+        A function used to validate the input of gamma correction value.
+        :param oldText: Text before change
+        :param newText: Input text (to the spinbox)
+        :return: Whether text is a valid number (in range) or not
+        """
+        if self.closing:
+            return True
+
+        return numericInRangeValidator(self.gammaCorrectionValueSpinbox, oldText, newText, -2.5, 2.5)
+
+    def blurKernelSizeValidator(self, oldText, newText):
+        """
+        A function used to validate the input of blur kernel size (blurring rate).
+        :param oldText: Text before change
+        :param newText: Input text (to the spinbox)
+        :return: Whether text is a valid integer (in range) or not
+        """
+        if self.closing or newText == '':
+            return True
+
+        if numericInRangeValidator(self.blurKernelSizeSpinbox, oldText, newText, 1, 40):
+            if int(newText) % 2 != 1:
+                messagebox.showerror('Illegal Input', 'Kernel size must be odd')
+                self.blurKernelSizeSpinbox.delete(0, tk.END)
+                self.blurKernelSizeSpinbox.insert(0, oldText)
+                self.blurKernelSizeSpinbox.focus_set()
+            else:
+                return True
+
+        return False
+
+    def objectRotationDegreeValidator(self, oldText, newText):
+        if self.closing or newText == '':
+            return True
+
+        return numericInRangeValidator(self.objectRotationDegreeIncSpinbox, oldText, newText, 1, 91)
+
+    def pixelValueThreshold1Validator(self, oldText, newText):
+        """
+        A function used to validate the input of thresholds. (0-255)
+        :param oldText: Text before change
+        :param newText: Input text (to the spinbox)
+        :return: Whether text is a valid integer (in range) or not
+        """
+        if self.closing:
+            return True
+
+        return numericInRangeValidator(self.threshold1Spinbox, oldText, newText, 0, 255)
+
+    def pixelValueThreshold2Validator(self, oldText, newText):
+        """
+        A function used to validate the input of thresholds. (0-255)
+        :param oldText: Text before change
+        :param newText: Input text (to the spinbox)
+        :return: Whether text is a valid integer (in range) or not
+        """
+        if self.closing:
+            return True
+
+        return numericInRangeValidator(self.threshold2Spinbox, oldText, newText, 0, 255)
+
+    def numericValidatorCmd(self, widget_name, oldText, newText):
         """
         A function used to validate the input of an entry, to make sure it is numeric
         :param widget_name: Sender widget
-        :param old_text: Input text before the change
-        :param new_text: Input text
+        :param oldText: Input text before the change
+        :param newText: Input text
         :return: Whether text is a valid number or not
         """
         if self.closing:
             return True
 
-        return numeric_validator(self.nametowidget(widget_name), old_text, new_text)
+        return numericValidator(self.nametowidget(widget_name), oldText, newText)
 
-    def color_validator_cmd(self, text):
+    def colorValidatorCmd(self, text):
         if self.closing:
             return True
 
-        is_valid = False
+        isValid = False
         text = text.strip()
-        if is_tuple(text):
-            is_valid = True
+        if isTuple(text):
+            isValid = True
             for val in literal_eval(text):
                 if val < 0 or val > 255:
-                    is_valid = False
+                    isValid = False
                     break
         elif text == '':
-            is_valid = True
+            isValid = True
 
-        if not is_valid:
+        if not isValid:
             messagebox.showerror('Illegal Input', 'Input color is illegal. Was: {}'.format(text))
-            self.mark_color_entry.focus_set()
+            self.markColorEntry.focus_set()
         else:
-            self.mark_color = literal_eval(text)
-            self.mark_color_entry.configure(background=ctl.color_to_hex(self.mark_color))
+            self.markColor = literal_eval(text)
+            self.markColorEntry.configure(background=ctl.colorToHex(self.markColor))
 
-        return is_valid
+        return isValid
+
+    def shapeValidatorCmd(self, text):
+        if self.closing:
+            return True
+
+        isValid = False
+        text = text.strip()
+        if isTuple(text):
+            tupleElements = literal_eval(text)
+            if tupleElements.length == 2:
+                isValid = True
+                for val in tupleElements:
+                    if val < 1:
+                        isValid = False
+                        break
+        elif text == '':
+            isValid = True
+
+        if not isValid:
+            messagebox.showerror('Illegal Input', 'Image shape is illegal. Was: {}'.format(text))
+            self.imageShapeEntry.focus_set()
+        else:
+            self.imageShape = literal_eval(text)
+
+        return isValid
+
+    def maskShapeValidatorCmd(self, text):
+        if self.closing:
+            return True
+
+        isValid = False
+        text = text.strip()
+        if isTuple(text):
+            tupleElements = literal_eval(text)
+            if tupleElements.length != 2:
+                isValid = False
+            else:
+                isValid = True
+                for val in tupleElements:
+                    if val < 1 or val > 99:
+                        isValid = False
+                        break
+        elif text == '':
+            isValid = True
+
+        if not isValid:
+            messagebox.showerror('Illegal Input', 'Mask shape is illegal. Was: {}'.format(text))
+            self.morphologicalMaskShapeEntry.focus_set()
+        else:
+            self.morphologicalMaskShape = literal_eval(text)
+
+        return isValid
 
     def reset(self):
         """
         Resets settings to factory settings (defaults)
         :return: None
         """
-        self.settings = Settings()
-        self.init_settings()
+        settingsInstance.reset()
+        self.initSettings()
 
-    def init_settings(self):
+    def initSettings(self):
         """
         Load settings from settings object into the editors
         :return: None
         """
-        if self.settings.is_using_rect_mark:
-            self.rect_mark_checkbutton.select()
+        self.gradientEdgeCheckVar.se = settingsInstance.isUsingGradientEdgeDetector
+        if settingsInstance.isUsingGradientEdgeDetector:
+            self.gradientEdgeCheckButton.select()
         else:
-            self.rect_mark_checkbutton.deselect()
+            self.gradientEdgeCheckButton.deselect()
 
-        self.mark_color = self.settings.corners_color
-        self.mark_color_entry.configure(background=ctl.color_to_hex(self.mark_color))
-        reset_text(self.mark_color_entry, self.settings.corners_color)
-        reset_text(self.dilate_size_spinbox, self.settings.dilate_size)
-        reset_text(self.harris_score_threshold_spinbox, self.settings.harris_score_threshold)
-        reset_text(self.harris_free_parameter_spinbox, self.settings.harris_free_parameter)
-        reset_text(self.neighborhood_size_spinbox, self.settings.neighborhood_size)
-        reset_text(self.canny_min_threshold_entry, int(self.settings.canny_min_thresh))
-        reset_text(self.canny_max_threshold_entry, int(self.settings.canny_max_thresh))
-        self.quality_var.set(self.settings.corners_quality)
+        if settingsInstance.isBrightBackground:
+            self.brightBackgroundCheckButton.select()
+        else:
+            self.brightBackgroundCheckButton.deselect()
+
+        self.markColor = settingsInstance.markColor
+        self.markColorEntry.configure(background=ctl.colorToHex(self.markColor))
+        resetText(self.markColorEntry, settingsInstance.markColor)
+        resetText(self.gammaCorrectionValueSpinbox, float(settingsInstance.gammaCorrectionValue))
+        resetText(self.blurKernelSizeSpinbox, int(settingsInstance.blurKernelSize))
+        resetText(self.threshold1Spinbox, int(settingsInstance.threshold1))
+        resetText(self.threshold2Spinbox, int(settingsInstance.threshold2))
+        resetText(self.morphCloseIterationsCountSpinbox, int(settingsInstance.morphCloseIterationsCount))
+        resetText(self.morphOpenIterationsCountSpinbox, int(settingsInstance.morphOpenIterationsCount))
+        resetText(self.morphDilateIterationsCountSpinbox, int(settingsInstance.morphDilateIterationsCount))
+        resetText(self.morphErodeIterationsCountSpinbox, int(settingsInstance.morphErodeIterationsCount))
+        resetText(self.structuringElementDontCareWidthSpinbox,
+                  int(settingsInstance.structuringElementDontCareWidth))
+        resetText(self.markThicknessSpinbox, int(settingsInstance.markThickness))
+        self.imageShape = settingsInstance.imageShape
+        resetText(self.imageShapeEntry, settingsInstance.imageShape)
+        self.morphologicalMaskShape = settingsInstance.morphologicalMaskShape
+        resetText(self.morphologicalMaskShapeEntry, settingsInstance.morphologicalMaskShape)
+        resetText(self.objectRotationDegreeIncSpinbox, int(settingsInstance.objectRotationDegreeInc))
