@@ -133,3 +133,8 @@ dmypy.json
 *.iml
 .idea
 *.zip
+*.txt
+/Project/Images/*.jpg
+/Project/Images/old/*.jpg
+/Project/Images/old/original/*.jpg
+/Project/MorphOperators/images/*.jpg
